@@ -600,52 +600,87 @@ const pages={
 
   async 'upload'(){
     const el=document.getElementById('pc');
-    const {data:cos}=await sb.from('dv_companies').select('*').order('name');
-    el.innerHTML=`
-      <div style="max-width:660px">
-        <div class="nt nt-b">${I.sh}<span><strong>SECURITY NOTICE:</strong> ALL FILE TYPES SUPPORTED — PDF, JPG, WORD, EXCEL, PPT, ZIP, VIDEO, AUDIO, TXT, TALLY. MAX 50MB. FULL AUDIT TRAIL IS MAINTAINED.</span></div>
-        <div class="ic">
-          <div style="display:grid;gap:14px">
-            <div class="fg"><label>DOCUMENT TITLE *</label><input id="ut" placeholder="E.G. Q3 SALES REPORT 2025"></div>
-            <div class="fr3">
-              <div class="fg"><label>COMPANY *</label>
-                <select id="uco" onchange="onCoChange()">
-                  <option value="">-- SELECT COMPANY --</option>
-                  ${(cos||[]).map(c=>`<option value="${e(c.name)}">${e(c.name.toUpperCase())}</option>`).join('')}
-                </select>
-              </div>
-              <div class="fg"><label>FINANCIAL YEAR *</label>
-                <select id="ufy" onchange="onFYChange()"><option value="">-- SELECT FY --</option></select>
-              </div>
-              <div class="fg"><label>DEPARTMENT *</label>
-                <select id="udept" onchange="onDeptChange()"><option value="">-- SELECT DEPT --</option></select>
-              </div>
-            </div>
-            <div class="fg"><label>FOLDER (OPTIONAL — SELECT OR CREATE)</label>
-              <select id="ufol"><option value="">-- NO FOLDER / ROOT --</option></select>
-              <div id="new-folder-wrap" style="margin-top:8px;display:none">
-                <input id="unewfol" placeholder="NEW FOLDER NAME (E.G. DIRECTOR FILES)" style="background:var(--card);border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;font-size:13px;color:var(--text);outline:none;width:100%;font-family:Inter,sans-serif;font-weight:500">
-              </div>
-            </div>
-            <div class="fg"><label>DESCRIPTION (OPTIONAL)</label><textarea id="udesc" placeholder="DOCUMENT DETAILS (OPTIONAL)..."></textarea></div>
-            <div class="fg"><label>TAGS (OPTIONAL)</label><input id="utags" placeholder="E.G. INVOICE, 2025, VENDOR"></div>
-            <div class="fg">
-              <label>FILE * — ALL TYPES SUPPORTED (MAX 50MB)</label>
-              <div class="fd" id="fdrop" onclick="document.getElementById('uf').click()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                <div class="fd-t" id="fdl">CLICK OR DRAG YOUR FILE HERE</div>
-                <div class="fd-s">PDF · WORD · EXCEL · PPT · IMAGE · ZIP · VIDEO · AUDIO · TXT · TALLY</div>
-              </div>
-              <input type="file" id="uf" hidden accept="${MIME_ALL}">
-            </div>
+    const pu=window._personalUpload;
+    const isPersonal=window._personalMode&&pu;
+
+    if(isPersonal){
+      // PERSONAL UPLOAD MODE
+      el.innerHTML=`
+        <div style="max-width:660px">
+          <div class="nt nt-t" style="background:var(--teal-l);border:1.5px solid rgba(15,118,110,.2);color:var(--teal);border-radius:10px;padding:12px 14px;font-size:12px;display:flex;gap:10px;align-items:flex-start;margin-bottom:1.25rem">
+            ${I.fol}<span><strong>PERSONAL FOLDER:</strong> UPLOADING TO <strong>${e(pu.folderName.toUpperCase())}</strong> — NO COMPANY, FY, OR DEPARTMENT NEEDED.</span>
           </div>
-          <div style="display:flex;gap:8px;margin-top:1.25rem">
-            <button class="btn btn-p" id="ubtn" onclick="confirmUpload()">${I.up} UPLOAD DOCUMENT</button>
-            <button class="btn" onclick="nav('browse')">CANCEL</button>
+          <div class="ic">
+            <div style="display:grid;gap:14px">
+              <div class="fg"><label>DOCUMENT TITLE *</label><input id="ut" placeholder="E.G. MY IMPORTANT DOCUMENT"></div>
+              <div class="fg"><label>DESCRIPTION (OPTIONAL)</label><textarea id="udesc" placeholder="DOCUMENT DETAILS (OPTIONAL)..."></textarea></div>
+              <div class="fg"><label>TAGS (OPTIONAL)</label><input id="utags" placeholder="E.G. PERSONAL, IMPORTANT"></div>
+              <div class="fg">
+                <label>FILE * — ALL TYPES SUPPORTED (MAX 50MB)</label>
+                <div class="fd" id="fdrop" onclick="document.getElementById('uf').click()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  <div class="fd-t" id="fdl">CLICK OR DRAG YOUR FILE HERE</div>
+                  <div class="fd-s">PDF · WORD · EXCEL · PPT · IMAGE · ZIP · VIDEO · AUDIO · TXT · TALLY</div>
+                </div>
+                <input type="file" id="uf" hidden accept="${MIME_ALL}">
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:1.25rem">
+              <button class="btn btn-p" id="ubtn" onclick="confirmUpload()">${I.up} UPLOAD TO PERSONAL FOLDER</button>
+              <button class="btn" onclick="window._personalMode=false;window._personalUpload=null;browsePersonalFolder(${pu.folderId},'${e(pu.folderName)}')">CANCEL</button>
+            </div>
+            <div class="pw" id="pw"><div class="pl" id="pl">UPLOADING...</div><div class="pb"><div class="pf" id="pf" style="width:0%"></div></div></div>
           </div>
-          <div class="pw" id="pw"><div class="pl" id="pl">UPLOADING...</div><div class="pb"><div class="pf" id="pf" style="width:0%"></div></div></div>
-        </div>
-      </div>`;
+        </div>`;
+    } else {
+      // COMPANY UPLOAD MODE
+      const {data:cos}=await sb.from('dv_companies').select('*').order('name');
+      el.innerHTML=`
+        <div style="max-width:660px">
+          <div class="nt nt-b">${I.sh}<span><strong>SECURITY NOTICE:</strong> ALL FILE TYPES SUPPORTED — PDF, JPG, WORD, EXCEL, PPT, ZIP, VIDEO, AUDIO, TXT, TALLY. MAX 50MB. FULL AUDIT TRAIL IS MAINTAINED.</span></div>
+          <div class="ic">
+            <div style="display:grid;gap:14px">
+              <div class="fg"><label>DOCUMENT TITLE *</label><input id="ut" placeholder="E.G. Q3 SALES REPORT 2025"></div>
+              <div class="fr3">
+                <div class="fg"><label>COMPANY *</label>
+                  <select id="uco" onchange="onCoChange()">
+                    <option value="">-- SELECT COMPANY --</option>
+                    ${(cos||[]).map(c=>`<option value="${e(c.name)}">${e(c.name.toUpperCase())}</option>`).join('')}
+                  </select>
+                </div>
+                <div class="fg"><label>FINANCIAL YEAR *</label>
+                  <select id="ufy" onchange="onFYChange()"><option value="">-- SELECT FY --</option></select>
+                </div>
+                <div class="fg"><label>DEPARTMENT *</label>
+                  <select id="udept" onchange="onDeptChange()"><option value="">-- SELECT DEPT --</option></select>
+                </div>
+              </div>
+              <div class="fg"><label>FOLDER (OPTIONAL — SELECT OR CREATE)</label>
+                <select id="ufol"><option value="">-- NO FOLDER / ROOT --</option></select>
+                <div id="new-folder-wrap" style="margin-top:8px;display:none">
+                  <input id="unewfol" placeholder="NEW FOLDER NAME (E.G. DIRECTOR FILES)" style="background:var(--card);border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;font-size:13px;color:var(--text);outline:none;width:100%;font-family:Inter,sans-serif;font-weight:500">
+                </div>
+              </div>
+              <div class="fg"><label>DESCRIPTION (OPTIONAL)</label><textarea id="udesc" placeholder="DOCUMENT DETAILS (OPTIONAL)..."></textarea></div>
+              <div class="fg"><label>TAGS (OPTIONAL)</label><input id="utags" placeholder="E.G. INVOICE, 2025, VENDOR"></div>
+              <div class="fg">
+                <label>FILE * — ALL TYPES SUPPORTED (MAX 50MB)</label>
+                <div class="fd" id="fdrop" onclick="document.getElementById('uf').click()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  <div class="fd-t" id="fdl">CLICK OR DRAG YOUR FILE HERE</div>
+                  <div class="fd-s">PDF · WORD · EXCEL · PPT · IMAGE · ZIP · VIDEO · AUDIO · TXT · TALLY</div>
+                </div>
+                <input type="file" id="uf" hidden accept="${MIME_ALL}">
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:1.25rem">
+              <button class="btn btn-p" id="ubtn" onclick="confirmUpload()">${I.up} UPLOAD DOCUMENT</button>
+              <button class="btn" onclick="nav('browse')">CANCEL</button>
+            </div>
+            <div class="pw" id="pw"><div class="pl" id="pl">UPLOADING...</div><div class="pb"><div class="pf" id="pf" style="width:0%"></div></div></div>
+          </div>
+        </div>`;
+    }
     const fp=document.getElementById('uf');
     fp.addEventListener('change',function(){if(this.files[0]){document.getElementById('fdl').textContent=this.files[0].name;document.getElementById('fdrop').classList.add('has-f');}});
     const fd=document.getElementById('fdrop');
@@ -859,22 +894,9 @@ async function browsePersonalFolder(folderId,folderName){
 
 // Upload directly to personal folder
 function uploadToPersonalFolder(folderId,folderName){
+  window._personalMode=true;
   window._personalUpload={folderId,folderName};
   nav('upload');
-  // After upload page loads, pre-fill personal mode
-  setTimeout(()=>{
-    const notice=document.querySelector('.nt.nt-b');
-    if(notice)notice.innerHTML=`${I.fol}<span>UPLOADING TO PERSONAL FOLDER: <strong>${e(folderName.toUpperCase())}</strong> — NO COMPANY/FY/DEPT REQUIRED.</span>`;
-    // Hide company/FY/dept selects, show personal note
-    const fr3=document.querySelector('.fr3');
-    if(fr3){fr3.style.display='none';}
-    const folsel=document.getElementById('ufol');
-    if(folsel){
-      folsel.innerHTML=`<option value="${folderId}" selected>${e(folderName.toUpperCase())} (PERSONAL)</option>`;
-    }
-    // Set hidden inputs
-    window._personalMode=true;
-  },200);
 }
 
 // ═══ BROWSE FY ═══
