@@ -1,4 +1,4 @@
-<!index.html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -461,42 +461,40 @@ const pages={
 
   async 'dashboard'(){
     const el=document.getElementById('pc');
-    // Stats
+    if(window._dashClockTimer)clearInterval(window._dashClockTimer);
+
     let dq=sb.from('dv_documents').select('*',{count:'exact',head:true}).eq('is_deleted',false);
     if(SES.role==='user')dq=dq.eq('uploaded_by',SES.id);
     const [{count:td}]=await Promise.all([dq]);
     const {count:tv}=await sb.from('dv_history').select('*',{count:'exact',head:true});
-    const {data:rd}=await sb.from('dv_documents').select('*,dv_users(name)').eq('is_deleted',false).order('created_at',{ascending:false}).limit(5);
-    const {data:rh}=await sb.from('dv_history').select('*,dv_users(name),dv_documents(title,dept)').order('viewed_at',{ascending:false}).limit(8);
     const {data:cosData}=await sb.from('dv_companies').select('id').limit(100);
     const {data:folsData}=await sb.from('dv_folders').select('id').limit(100);
+    const {data:rd}=await sb.from('dv_documents').select('*,dv_users(name)').eq('is_deleted',false).order('created_at',{ascending:false}).limit(6);
 
-    // Greeting based on IST time
     const hr=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Kolkata'})).getHours();
     const greet=hr<12?'GOOD MORNING':hr<17?'GOOD AFTERNOON':'GOOD EVENING';
     const greetEmoji=hr<12?'🌅':hr<17?'☀️':'🌙';
-    const day=new Date().toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata',weekday:'long'}).toUpperCase();
 
     el.innerHTML=`
-      <!-- HEADER GREETING -->
-      <div style="background:linear-gradient(135deg,#1d4ed8 0%,#4f46e5 50%,#7c3aed 100%);border-radius:16px;padding:1.5rem 2rem;margin-bottom:1.5rem;box-shadow:0 8px 32px rgba(29,78,216,.25);position:relative;overflow:hidden">
-        <div style="position:absolute;top:-20px;right:-20px;width:120px;height:120px;background:rgba(255,255,255,.05);border-radius:50%"></div>
-        <div style="position:absolute;bottom:-30px;right:60px;width:80px;height:80px;background:rgba(255,255,255,.05);border-radius:50%"></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+      <!-- GREETING BANNER -->
+      <div style="background:linear-gradient(135deg,#1d4ed8 0%,#4f46e5 50%,#7c3aed 100%);border-radius:16px;padding:1.5rem 2rem;margin-bottom:1.5rem;box-shadow:0 8px 32px rgba(29,78,216,.25);overflow:hidden;position:relative">
+        <div style="position:absolute;top:-30px;right:-30px;width:160px;height:160px;background:rgba(255,255,255,.04);border-radius:50%"></div>
+        <div style="position:absolute;bottom:-40px;left:30%;width:120px;height:120px;background:rgba(255,255,255,.04);border-radius:50%"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:1.5rem;flex-wrap:wrap;position:relative;z-index:1">
           <div>
-            <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.6);margin-bottom:4px">${day} — WHERE IMPORTANT DOCUMENTS FIND THEIR HOME</div>
-            <div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:1px">${greetEmoji} ${greet}, ${SES.name.split(' ')[0]}!</div>
-            <div style="font-size:12px;color:rgba(255,255,255,.7);margin-top:6px;font-weight:500">${SES.role==='admin'?'FULL SYSTEM ACCESS — ALL COMPANIES & DEPARTMENTS':'LOGGED IN AS USER — '+SES.dept}</div>
+            <div style="font-size:10px;font-weight:700;letter-spacing:2.5px;color:rgba(255,255,255,.55);margin-bottom:6px">WHERE IMPORTANT DOCUMENTS FIND THEIR HOME</div>
+            <div style="font-size:24px;font-weight:900;color:#fff;letter-spacing:1px">${greetEmoji} ${greet}, ${SES.name.split(' ')[0]}!</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.65);margin-top:6px;font-weight:600;letter-spacing:.5px">${SES.role==='admin'?'FULL SYSTEM ACCESS — ALL COMPANIES & DEPARTMENTS':'LOGGED IN AS USER — '+SES.dept}</div>
           </div>
-          <!-- LIVE CLOCK -->
-          <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:1rem 1.5rem;text-align:center;backdrop-filter:blur(10px)">
-            <div id="dash-clock" style="font-size:28px;font-weight:900;color:#fff;letter-spacing:2px;font-variant-numeric:tabular-nums">--:-- --</div>
-            <div id="dash-day" style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:rgba(255,255,255,.7);margin-top:3px">LOADING...</div>
+          <!-- BIG LIVE CLOCK -->
+          <div style="background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:1.25rem 2rem;text-align:center;min-width:220px">
+            <div id="dash-clock" style="font-size:36px;font-weight:900;color:#fff;letter-spacing:3px;font-variant-numeric:tabular-nums;line-height:1">--:-- --</div>
+            <div id="dash-date" style="font-size:11px;font-weight:700;letter-spacing:1.5px;color:rgba(255,255,255,.6);margin-top:6px">LOADING...</div>
           </div>
         </div>
       </div>
 
-      <!-- STAT CARDS -->
+      <!-- STATS -->
       <div class="sg" style="margin-bottom:1.5rem">
         <div class="sc" style="--sc:var(--acc)"><div class="sc-l">TOTAL DOCUMENTS</div><div class="sc-n">${td||0}</div><div class="sc-s">ACTIVE FILES</div></div>
         <div class="sc" style="--sc:var(--purple)"><div class="sc-l">TOTAL ACTIVITY</div><div class="sc-n">${tv||0}</div><div class="sc-s">AUDIT RECORDS</div></div>
@@ -504,52 +502,87 @@ const pages={
         <div class="sc" style="--sc:var(--teal)"><div class="sc-l">FOLDERS</div><div class="sc-n">${(folsData||[]).length}</div><div class="sc-s">CREATED</div></div>
       </div>
 
-      <!-- RECENT DOCS TABLE -->
+      <!-- RECENT DOCUMENTS TABLE ONLY -->
       <div class="sh" style="margin-bottom:.75rem"><h3>RECENT DOCUMENTS</h3><button class="btn btn-sm" onclick="nav('browse')">VIEW ALL</button></div>
-      <div class="tw" style="margin-bottom:1.5rem"><table>
-        <thead><tr><th>DOCUMENT</th><th>COMPANY</th><th>DEPARTMENT</th><th>UPLOADED BY</th><th>DATE</th></tr></thead>
+      <div class="tw"><table>
+        <thead><tr><th>DOCUMENT</th><th>COMPANY</th><th>DEPARTMENT</th><th>FOLDER</th><th>UPLOADED BY</th><th>DATE</th></tr></thead>
         <tbody>${(rd||[]).map(d=>{const[fc,fl]=fIC(d.original_name||'',d.mime_type||'');return`<tr>
           <td><div class="nr"><div class="fic ${fc}">${fl}</div><div>
             <div style="font-size:12px;font-weight:700">${e((d.title||'').toUpperCase())}</div>
             <div style="font-size:10px;color:var(--text3)">${e(d.original_name)}</div>
           </div></div></td>
-          <td><span class="badge bd-b" style="font-size:9px">${e((d.company||'').toUpperCase())}</span></td>
-          <td>${dB(d.dept)}</td>
+          <td><span class="badge bd-b" style="font-size:9px">${e((d.company||'PERSONAL').toUpperCase())}</span></td>
+          <td>${d.dept?dB(d.dept):'<span class="badge bd-t" style="font-size:9px">PERSONAL</span>'}</td>
+          <td style="font-size:10px;color:var(--text3)">${e((d.folder_name||'ROOT'))}</td>
           <td><div class="nr"><div class="av ${avc(d.dv_users?.name||'A')}" style="width:24px;height:24px;font-size:10px">${ini(d.dv_users?.name||'AD')}</div><span style="font-size:12px;font-weight:700">${e((d.dv_users?.name||'ADMIN').toUpperCase())}</span></div></td>
           <td style="font-size:10px;color:var(--text3);white-space:nowrap">${fDT(d.created_at)}</td>
-        </tr>`;}).join('')||'<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text3);font-size:11px;font-weight:700">NO DOCUMENTS FOUND</td></tr>'}
+        </tr>`;}).join('')||'<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text3);font-size:11px;font-weight:700">NO DOCUMENTS FOUND</td></tr>'}
         </tbody>
       </table></div>`;
 
-    // Start live dashboard clock
-    const dashClockTick=()=>{
+    // BIG LIVE CLOCK with seconds
+    const dashTick=()=>{
       const now=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Kolkata'}));
-      const hh=now.getHours(),mm=now.getMinutes(),ss=now.getSeconds();
-      const ampm=hh>=12?'PM':'AM';
-      const h12=hh%12||12;
+      const h=now.getHours(),m=now.getMinutes(),s=now.getSeconds();
+      const ampm=h>=12?'PM':'AM';
+      const h12=h%12||12;
       const cl=document.getElementById('dash-clock');
-      const dl=document.getElementById('dash-day');
-      if(cl)cl.textContent=`${String(h12).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')} ${ampm}`;
+      const dl=document.getElementById('dash-date');
+      if(cl)cl.textContent=`${String(h12).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} ${ampm}`;
       if(dl){const days=['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];const months=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];dl.textContent=`${days[now.getDay()]}, ${String(now.getDate()).padStart(2,'0')} ${months[now.getMonth()]} ${now.getFullYear()}`;}
     };
-    dashClockTick();
-    window._dashClockTimer=setInterval(dashClockTick,1000);
+    dashTick();
+    window._dashClockTimer=setInterval(dashTick,1000);
   },
 
-  // BROWSE: COMPANY LEVEL
+  // BROWSE: TWO SECTIONS — Company Docs + Personal Folders
   async 'browse'(){
     const el=document.getElementById('pc');
     const {data:cos}=await sb.from('dv_companies').select('*').order('name');
+    // Personal folders for this user (or all for admin)
+    let pfq=sb.from('dv_folders').select('*,dv_users(name)').is('company',null).order('name');
+    if(SES.role==='user')pfq=pfq.eq('created_by',SES.id);
+    const {data:pFols}=await pfq;
+    // Also get personal folders that have is_personal = true OR no company
     el.innerHTML=`
-      <div class="sh"><h3>SELECT COMPANY (${(cos||[]).length})</h3></div>
-      <div class="dg">${(cos||[]).map(co=>`
-        <div class="dc" onclick="bFY('${e(co.name)}')">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <div class="folder-3d blue"><div class="f-back"></div><div class="f-tab"></div><div class="f-front"></div></div>
-            <div class="badge bd-b">${e(co.name.toUpperCase())}</div>
-          </div>
-          <div style="font-size:11px;font-weight:700;color:var(--text3)">CLICK TO BROWSE →</div>
-        </div>`).join('')||'<div style="color:var(--text3);font-size:12px;font-weight:700;padding:2rem;grid-column:1/-1">NO COMPANIES FOUND — ADD IN MASTER DATA</div>'}
+      <!-- SECTION 1: PERSONAL FOLDERS -->
+      <div style="margin-bottom:2rem">
+        <div class="sh">
+          <h3 style="display:flex;align-items:center;gap:8px">${I.fol} PERSONAL FOLDERS <span class="badge bd-t">${(pFols||[]).length}</span></h3>
+          <button class="btn btn-t btn-sm" onclick="createPersonalFolder()">${I.pl} NEW PERSONAL FOLDER</button>
+        </div>
+        <div class="nt nt-b" style="margin-bottom:1rem">${I.sh}<span>PERSONAL FOLDERS ARE FOR INDIVIDUAL USE — NO COMPANY, FY, OR DEPARTMENT NEEDED. ONLY YOU (AND ADMIN) CAN SEE YOUR PERSONAL FOLDERS.</span></div>
+        <div class="dg">
+          ${(pFols||[]).map(f=>`
+            <div class="dc" onclick="browsePersonalFolder(${f.id},'${e(f.name)}')">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                <div class="folder-3d teal"><div class="f-back"></div><div class="f-tab"></div><div class="f-front"></div></div>
+                <div>
+                  <div class="badge bd-t">${e(f.name.toUpperCase())}</div>
+                  <div style="font-size:10px;color:var(--text3);margin-top:3px">BY ${e((f.dv_users?.name||'').toUpperCase())}</div>
+                </div>
+              </div>
+              <div style="font-size:11px;font-weight:700;color:var(--text3)">PERSONAL DOCUMENTS →</div>
+            </div>`).join('')||'<div style="grid-column:1/-1;background:var(--card);border:1.5px dashed var(--border2);border-radius:14px;padding:2rem;text-align:center;color:var(--text3);font-size:12px;font-weight:700">NO PERSONAL FOLDERS YET — CREATE ONE ABOVE</div>'}
+        </div>
+      </div>
+
+      <!-- DIVIDER -->
+      <div style="border-top:2px solid var(--border);margin-bottom:2rem;position:relative"><span style="position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--bg);padding:0 1rem;font-size:10px;font-weight:800;letter-spacing:2px;color:var(--text3)">COMPANY DOCUMENTS</span></div>
+
+      <!-- SECTION 2: COMPANY DOCUMENTS -->
+      <div>
+        <div class="sh"><h3 style="display:flex;align-items:center;gap:8px">${I.co} COMPANIES <span class="badge bd-b">${(cos||[]).length}</span></h3></div>
+        <div class="dg">
+          ${(cos||[]).map(co=>`
+            <div class="dc" onclick="bFY('${e(co.name)}')">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                <div class="folder-3d blue"><div class="f-back"></div><div class="f-tab"></div><div class="f-front"></div></div>
+                <div class="badge bd-b">${e(co.name.toUpperCase())}</div>
+              </div>
+              <div style="font-size:11px;font-weight:700;color:var(--text3)">COMPANY → FY → DEPT → DOCS →</div>
+            </div>`).join('')||'<div style="grid-column:1/-1;color:var(--text3);font-size:12px;font-weight:700;padding:2rem;background:var(--card);border-radius:14px;border:1.5px dashed var(--border2);text-align:center">NO COMPANIES FOUND — ADD IN MASTER DATA</div>'}
+        </div>
       </div>`;
   },
 
@@ -784,6 +817,66 @@ const pages={
   },
 };
 
+// ═══ PERSONAL FOLDER FUNCTIONS ═══
+function createPersonalFolder(){
+  openModal(`
+    <div class="mh"><h3>${I.fol} CREATE PERSONAL FOLDER</h3><div class="mc" onclick="cm()">&#215;</div></div>
+    <div class="mb">
+      <div class="nt nt-b">${I.sh}<span>PERSONAL FOLDERS DON'T NEED COMPANY, FY, OR DEPARTMENT. THEY ARE JUST FOR YOU.</span></div>
+      <div class="fg"><label>FOLDER NAME *</label><input id="pfn" placeholder="E.G. MY DOCUMENTS, PERSONAL FILES, DIRECTOR FILES"></div>
+    </div>
+    <div class="mf"><button class="btn" onclick="cm()">CANCEL</button><button class="btn btn-t" onclick="savePersonalFolder()">CREATE FOLDER</button></div>`);
+}
+
+async function savePersonalFolder(){
+  const name=(document.getElementById('pfn').value.trim()||'').toUpperCase();
+  if(!name)return toast('FOLDER NAME IS REQUIRED','err');
+  // Personal folders: company=null, financial_year=null, dept=null
+  const {error}=await sb.from('dv_folders').insert({name,company:null,financial_year:null,dept:null,created_by:SES.id});
+  if(error){toast(error.message,'err');return;}
+  toast('PERSONAL FOLDER CREATED ✓');cm();await nav('browse');
+}
+
+async function browsePersonalFolder(folderId,folderName){
+  const el=document.getElementById('pc');
+  document.getElementById('tbt').textContent=folderName.toUpperCase()+' — PERSONAL';
+  const {data:docs}=await sb.from('dv_documents').select('*,dv_users(name)').eq('folder_id',folderId).eq('is_deleted',false).order('created_at',{ascending:false});
+  el.innerHTML=`
+    <div class="bc">${I.fo}<a onclick="nav('browse')">BROWSE</a><span>›</span><strong>${e(folderName.toUpperCase())} (PERSONAL)</strong></div>
+    <div class="sh">
+      <h3>PERSONAL DOCUMENTS (${(docs||[]).length})</h3>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" onclick="nav('browse')">${I.bk} BACK</button>
+        <button class="btn btn-t btn-sm" onclick="uploadToPersonalFolder(${folderId},'${e(folderName)}')">${I.up} UPLOAD HERE</button>
+      </div>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>#</th><th>DOCUMENT</th><th>UPLOADED BY</th><th>DATE</th><th>SIZE</th><th>TIMER</th><th>ACTIONS</th></tr></thead>
+      <tbody>${rRows(docs||[],true)}</tbody>
+    </table></div>`;
+  (docs||[]).forEach(d=>{if((canDelete2Min(d.created_at))&&(SES.role==='admin'||d.uploaded_by===SES.id))setTimeout(()=>startDeleteTimer(d.id,d.created_at),100);});
+}
+
+// Upload directly to personal folder
+function uploadToPersonalFolder(folderId,folderName){
+  window._personalUpload={folderId,folderName};
+  nav('upload');
+  // After upload page loads, pre-fill personal mode
+  setTimeout(()=>{
+    const notice=document.querySelector('.nt.nt-b');
+    if(notice)notice.innerHTML=`${I.fol}<span>UPLOADING TO PERSONAL FOLDER: <strong>${e(folderName.toUpperCase())}</strong> — NO COMPANY/FY/DEPT REQUIRED.</span>`;
+    // Hide company/FY/dept selects, show personal note
+    const fr3=document.querySelector('.fr3');
+    if(fr3){fr3.style.display='none';}
+    const folsel=document.getElementById('ufol');
+    if(folsel){
+      folsel.innerHTML=`<option value="${folderId}" selected>${e(folderName.toUpperCase())} (PERSONAL)</option>`;
+    }
+    // Set hidden inputs
+    window._personalMode=true;
+  },200);
+}
+
 // ═══ BROWSE FY ═══
 async function bFY(co){
   window._BC=co;
@@ -987,19 +1080,43 @@ async function onDeptChange(){
 // CONFIRM UPLOAD
 async function confirmUpload(){
   const t=document.getElementById('ut')?.value.trim();
+  const file=document.getElementById('uf')?.files[0];
+  if(!t)return toast('DOCUMENT TITLE IS REQUIRED','err');
+  if(!file)return toast('PLEASE SELECT A FILE','err');
+  if(file.size>52428800)return toast('FILE SIZE EXCEEDS 50MB LIMIT','err');
+
+  // PERSONAL MODE — no company/FY/dept needed
+  if(window._personalMode&&window._personalUpload){
+    const pu=window._personalUpload;
+    openModal(`
+      <div class="mh"><h3>${I.wn} CONFIRM UPLOAD</h3><div class="mc" onclick="cm()">&#215;</div></div>
+      <div class="mb">
+        <div class="warn-box">
+          <div class="warn-title">${I.wn} PLEASE VERIFY BEFORE UPLOADING</div>
+          <ul class="warn-list">
+            <li>DOCUMENT: <strong>${e(t.toUpperCase())}</strong></li>
+            <li>FOLDER: <strong>${e(pu.folderName.toUpperCase())} (PERSONAL)</strong></li>
+            <li>FILE: <strong>${e(file.name)}</strong> (${fSz(file.size)})</li>
+          </ul>
+        </div>
+        <div class="nt nt-r">${I.wn}<span>YOU CAN DELETE THIS DOCUMENT WITHIN <strong>2 MINUTES</strong> OF UPLOAD.</span></div>
+      </div>
+      <div class="mf">
+        <button class="btn" onclick="cm()">CANCEL</button>
+        <button class="btn btn-p" onclick="cm();doUpload()">${I.up} YES, UPLOAD</button>
+      </div>`);
+    return;
+  }
+
   const co=document.getElementById('uco')?.value;
   const fy=document.getElementById('ufy')?.value;
   let dp=document.getElementById('udept')?.value;
   if(dp==='__new__')dp=document.getElementById('udept-new')?.value.trim().toUpperCase();
   const folVal=document.getElementById('ufol')?.value;
   const newFolName=document.getElementById('unewfol')?.value.trim();
-  const file=document.getElementById('uf')?.files[0];
-  if(!t)return toast('DOCUMENT TITLE IS REQUIRED','err');
   if(!co)return toast('PLEASE SELECT A COMPANY','err');
   if(!fy)return toast('PLEASE SELECT A FINANCIAL YEAR','err');
   if(!dp)return toast('PLEASE SELECT A DEPARTMENT','err');
-  if(!file)return toast('PLEASE SELECT A FILE','err');
-  if(file.size>52428800)return toast('FILE SIZE EXCEEDS 50MB LIMIT','err');
   const folLabel=folVal==='__new__'?'NEW: '+(newFolName||'UNNAMED'):folVal?'EXISTING FOLDER':'ROOT (NO FOLDER)';
   openModal(`
     <div class="mh"><h3>${I.wn} CONFIRM UPLOAD</h3><div class="mc" onclick="cm()">&#215;</div></div>
@@ -1024,6 +1141,46 @@ async function confirmUpload(){
 }
 
 async function doUpload(){
+  // Check personal mode
+  if(window._personalMode&&window._personalUpload){
+    const t=document.getElementById('ut')?.value.trim();
+    const desc=document.getElementById('udesc')?.value.trim();
+    const tags=document.getElementById('utags')?.value.trim();
+    const file=document.getElementById('uf')?.files[0];
+    const pu=window._personalUpload;
+    const btn=document.getElementById('ubtn');
+    const pw=document.getElementById('pw');
+    const pb=document.getElementById('pf');
+    const pl=document.getElementById('pl');
+    if(btn)btn.disabled=true;if(pw)pw.style.display='block';if(pb)pb.style.width='20%';if(pl)pl.textContent='UPLOADING...';
+    try{
+      const fp=`personal/${SES.id}/${pu.folderId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+      const {error:se}=await sb.storage.from('dv-files').upload(fp,file,{cacheControl:'3600',upsert:false});
+      if(se)throw new Error('STORAGE ERROR: '+se.message);
+      if(pb)pb.style.width='65%';if(pl)pl.textContent='SAVING RECORD...';
+      const {data:nd,error:de}=await sb.from('dv_documents').insert({
+        title:t.toUpperCase(),company:null,financial_year:null,dept:null,
+        folder_id:pu.folderId,description:desc||null,
+        tags:tags?tags.toUpperCase():null,
+        original_name:file.name,file_path:fp,file_size:file.size,
+        mime_type:file.type||null,uploaded_by:SES.id,
+        is_deleted:false,created_at:new Date().toISOString()
+      }).select('id').single();
+      if(de)throw new Error('DB ERROR: '+de.message);
+      if(pb)pb.style.width='90%';
+      await lH(nd.id,'uploaded');
+      if(pb)pb.style.width='100%';if(pl)pl.textContent='UPLOAD COMPLETE!';
+      toast(`"${t.toUpperCase()}" UPLOADED TO PERSONAL FOLDER ✓`);
+      window._personalMode=false;window._personalUpload=null;
+      setTimeout(()=>browsePersonalFolder(pu.folderId,pu.folderName),1200);
+    }catch(ex){
+      toast(ex.message,'err');
+      if(pw)pw.style.display='none';
+      if(btn){btn.disabled=false;btn.innerHTML=I.up+' UPLOAD DOCUMENT';}
+    }
+    return;
+  }
+  // STANDARD UPLOAD (company mode)
   const t=document.getElementById('ut')?.value.trim();
   const co=document.getElementById('uco')?.value;
   const fy=document.getElementById('ufy')?.value;
@@ -1040,15 +1197,12 @@ async function doUpload(){
   const pl=document.getElementById('pl');
   if(btn)btn.disabled=true;if(pw)pw.style.display='block';if(pb)pb.style.width='15%';if(pl)pl.textContent='UPLOADING FILE...';
   try{
-    // Create new folder if needed
     let folderId=null;
     if(folVal==='__new__'&&newFolName){
       const {data:nf,error:fe}=await sb.from('dv_folders').insert({name:newFolName,company:co,financial_year:fy,dept:dp,created_by:SES.id}).select('id').single();
       if(fe)throw new Error('FOLDER CREATION FAILED: '+fe.message);
       folderId=nf.id;
-    }else if(folVal&&folVal!=='__new__'){
-      folderId=parseInt(folVal);
-    }
+    }else if(folVal&&folVal!=='__new__'){folderId=parseInt(folVal);}
     if(pb)pb.style.width='30%';
     const fp=`${co}/${fy}/${dp}/${folderId||'root'}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
     const {error:se}=await sb.storage.from('dv-files').upload(fp,file,{cacheControl:'3600',upsert:false});
@@ -1074,6 +1228,7 @@ async function doUpload(){
     if(btn){btn.disabled=false;btn.innerHTML=I.up+' UPLOAD DOCUMENT';}
   }
 }
+
 
 // VIEW DOC
 async function vD(id){
