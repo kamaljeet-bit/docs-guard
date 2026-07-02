@@ -539,11 +539,11 @@ const pages={
   async 'browse'(){
     const el=document.getElementById('pc');
     const {data:cos}=await sb.from('dv_companies').select('*').order('name');
-    // Personal folders for this user (or all for admin)
+    // Personal folders - where company is null
     let pfq=sb.from('dv_folders').select('*,dv_users(name)').is('company',null).order('name');
     if(SES.role==='user')pfq=pfq.eq('created_by',SES.id);
-    const {data:pFols}=await pfq;
-    // Also get personal folders that have is_personal = true OR no company
+    let pFols=[];
+    try{const {data:pf}=await pfq;pFols=pf||[];}catch(ex){pFols=[];}
     el.innerHTML=`
       <!-- SECTION 1: PERSONAL FOLDERS -->
       <div style="margin-bottom:2rem">
