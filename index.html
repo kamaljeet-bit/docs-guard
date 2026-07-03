@@ -551,9 +551,11 @@ ${(pFols||[]).map(f=>`
 </div>
 </div>
 <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
-<button class="btn btn-sm btn-p" onclick="browsePersonalFolder(${f.id},'${e(f.name)}')">${I.ey} VIEW DOCS</button>
+<button class="btn btn-sm btn-p" onclick="browsePersonalFolder(${f.id},'${e(f.name)}')">${I.ey} VIEW</button>
 ${SES.role==='admin'?`<button class="btn btn-sm btn-t" onclick="manageFolderAccess(${f.id},'${e(f.name)}')">${I.ac} ACCESS</button>`:''}
 ${SES.role==='admin'?`<button class="btn btn-sm btn-a" onclick="uploadToPersonalFolder(${f.id},'${e(f.name)}')">${I.up} UPLOAD</button>`:''}
+${SES.role==='admin'?`<button class="btn btn-sm" onclick="renameFolder(${f.id},'${e(f.name)}','personal')">✏ RENAME</button>`:''}
+${SES.role==='admin'?`<button class="btn btn-sm btn-d" onclick="deleteFolder(${f.id},'${e(f.name)}','personal')">${I.tr}</button>`:''}
 </div>
 </div>`).join('')||`<div style="grid-column:1/-1;background:var(--card);border:1.5px dashed var(--border2);border-radius:14px;padding:2rem;text-align:center;color:var(--text3);font-size:12px;font-weight:700">${SES.role==='admin'?'NO PERSONAL FOLDERS YET — CREATE ONE ABOVE':'NO PERSONAL FOLDERS ACCESS — CONTACT ADMIN'}</div>`}
 </div>
@@ -1643,6 +1645,60 @@ if(!name)return toast('FOLDER NAME IS REQUIRED','err');
 const {error}=await sb.from('dv_folders').insert({name,company:co,financial_year:fy,dept:dp,created_by:SES.id});
 if(error){toast(error.message,'err');return;}
 toast('FOLDER CREATED ✓');cm();bFol(co,fy,dp);
+}
+
+// RENAME FOLDER
+function renameFolder(id,oldName,type,co='',fy='',dp=''){
+openModal(`
+<div class="mh"><h3>✏ RENAME FOLDER</h3><div class="mc" onclick="cm()">&#215;</div></div>
+<div class="mb">
+<div class="fg"><label>CURRENT NAME</label><input disabled value="${e(oldName.toUpperCase())}" style="opacity:.6"></div>
+<div class="fg" style="margin-top:12px"><label>NEW FOLDER NAME *</label><input id="rf-name" placeholder="NEW NAME" value="${e(oldName.toUpperCase())}"></div>
+</div>
+<div class="mf">
+<button class="btn" onclick="cm()">CANCEL</button>
+<button class="btn btn-p" onclick="doRenameFolder(${id},'${type}','${e(co)}','${e(fy)}','${e(dp)}')">RENAME</button>
+</div>`);
+setTimeout(()=>{const i=document.getElementById('rf-name');if(i){i.focus();i.select();}},100);
+}
+
+async function doRenameFolder(id,type,co,fy,dp){
+const name=(document.getElementById('rf-name').value.trim()||'').toUpperCase();
+if(!name)return toast('NEW NAME REQUIRED','err');
+const {error}=await sb.from('dv_folders').update({name}).eq('id',id);
+if(error){toast(error.message,'err');return;}
+toast('FOLDER RENAMED ✓');cm();
+if(type==='personal')nav('browse');
+else bFol(co,fy,dp);
+}
+
+// DELETE FOLDER
+async function deleteFolder(id,name,type,co='',fy='',dp=''){
+openModal(`
+<div class="mh"><h3>${I.tr} DELETE FOLDER</h3><div class="mc" onclick="cm()">&#215;</div></div>
+<div class="mb">
+<div class="nt nt-r">${I.wn}<span><strong>WARNING:</strong> FOLDER "${e(name.toUpperCase())}" DELETE HOGA. FOLDER KE ANDAR KE DOCUMENTS DELETE NAHI HONGE — WO ROOT MEIN MOVE HO JAYENGE.</span></div>
+<div style="background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:1rem;font-size:12px;font-weight:700;color:var(--text2)">
+FOLDER NAME: <strong style="color:var(--red)">${e(name.toUpperCase())}</strong>
+</div>
+</div>
+<div class="mf">
+<button class="btn" onclick="cm()">CANCEL</button>
+<button class="btn btn-d" onclick="doDeleteFolder(${id},'${type}','${e(co)}','${e(fy)}','${e(dp)}')">${I.tr} DELETE FOLDER</button>
+</div>`);
+}
+
+async function doDeleteFolder(id,type,co,fy,dp){
+// Move docs to root first
+await sb.from('dv_documents').update({folder_id:null}).eq('folder_id',id);
+// Delete folder access records
+await sb.from('dv_folder_access').delete().eq('folder_id',id);
+// Delete folder
+const {error}=await sb.from('dv_folders').delete().eq('id',id);
+if(error){toast(error.message,'err');return;}
+toast('FOLDER DELETED — DOCUMENTS MOVED TO ROOT ✓','warn');cm();
+if(type==='personal')nav('browse');
+else bFol(co,fy,dp);
 }
 // ═══ FULL ACCESS PANEL ═══
 async function openAccessPanel(userId,userName){
