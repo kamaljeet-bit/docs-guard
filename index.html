@@ -522,10 +522,17 @@ window._dashClockTimer=setInterval(dashTick,1000);
 async 'browse'(){
 const el=document.getElementById('pc');
 const {data:cos}=await sb.from('dv_companies').select('*').order('name');
-// Personal folders - ALL folders visible to everyone (admin created = shared)
-let pfq=sb.from('dv_folders').select('*,dv_users(name)').is('company',null).order('name');
+// Personal folders - Admin sees all, User sees only granted
 let pFols=[];
-try{const {data:pf}=await pfq;pFols=pf||[];}catch(ex){pFols=[];}
+try{
+if(SES.role==='admin'){
+const {data:pf}=await sb.from('dv_folders').select('*,dv_users(name)').is('company',null).order('name');
+pFols=pf||[];
+}else{
+const {data:fa}=await sb.from('dv_folder_access').select('folder_id,dv_folders(id,name,created_by,dv_users(name))').eq('user_id',SES.id);
+pFols=(fa||[]).map(a=>a.dv_folders).filter(Boolean);
+}
+}catch(ex2){pFols=[];}
 el.innerHTML=`
 <div style="margin-bottom:2rem">
 <div class="sh">
@@ -543,8 +550,12 @@ ${(pFols||[]).map(f=>`
 <div style="font-size:10px;color:var(--text3);margin-top:3px">CREATED BY ${e((f.dv_users?.name||'ADMIN').toUpperCase())}</div>
 </div>
 </div>
-<div style="font-size:11px;font-weight:700;color:var(--text3)">CLICK TO VIEW DOCUMENTS →</div>
-</div>`).join('')||`<div style="grid-column:1/-1;background:var(--card);border:1.5px dashed var(--border2);border-radius:14px;padding:2rem;text-align:center;color:var(--text3);font-size:12px;font-weight:700">${SES.role==='admin'?'NO PERSONAL FOLDERS YET — CREATE ONE ABOVE':'NO PERSONAL FOLDERS AVAILABLE — CONTACT ADMIN'}</div>`}
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+<button class="btn btn-sm btn-p" onclick="browsePersonalFolder(${f.id},'${e(f.name)}')">${I.ey} VIEW DOCS</button>
+${SES.role==='admin'?`<button class="btn btn-sm btn-t" onclick="manageFolderAccess(${f.id},'${e(f.name)}')">${I.ac} ACCESS</button>`:''}
+${SES.role==='admin'?`<button class="btn btn-sm btn-a" onclick="uploadToPersonalFolder(${f.id},'${e(f.name)}')">${I.up} UPLOAD</button>`:''}
+</div>
+</div>`).join('')||`<div style="grid-column:1/-1;background:var(--card);border:1.5px dashed var(--border2);border-radius:14px;padding:2rem;text-align:center;color:var(--text3);font-size:12px;font-weight:700">${SES.role==='admin'?'NO PERSONAL FOLDERS YET — CREATE ONE ABOVE':'NO PERSONAL FOLDERS ACCESS — CONTACT ADMIN'}</div>`}
 </div>
 </div>
 <div style="border-top:2px solid var(--border);margin-bottom:2rem;position:relative"><span style="position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--bg);padding:0 1rem;font-size:10px;font-weight:800;letter-spacing:2px;color:var(--text3)">COMPANY DOCUMENTS</span></div>
@@ -821,6 +832,50 @@ el.innerHTML=`
 },
 };
 // ═══ PERSONAL FOLDER FUNCTIONS ═══
+async function manageFolderAccess(folderId,folderName){
+  const {data:us}=await sb.from('dv_users').select('*').eq('is_active',true).order('name');
+  const {data:acc}=await sb.from('dv_folder_access').select('*').eq('folder_id',folderId);
+  openModal(`
+    <div class="mh"><h3>${I.ac} FOLDER ACCESS: ${e(folderName.toUpperCase())}</h3><div class="mc" onclick="cm()">&#215;</div></div>
+    <div class="mb">
+      <div class="nt nt-b">${I.sh}<span>SELECT WHICH USERS CAN SEE THIS PERSONAL FOLDER. USERS WITHOUT ACCESS WILL NOT SEE THIS FOLDER.</span></div>
+      <div style="display:grid;gap:8px">
+        ${(us||[]).map(u=>{
+          const hasAcc=acc?.some(a=>a.user_id===u.id);
+          return`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--card);border:1.5px solid var(--border);border-radius:9px">
+            <div class="nr">
+              <div class="av ${avc(u.name)}" style="width:30px;height:30px;font-size:10px">${ini(u.name)}</div>
+              <div>
+                <div style="font-size:12px;font-weight:700">${e(u.name.toUpperCase())}</div>
+                <div style="font-size:10px;color:var(--text3)">${e(u.dept||'')}</div>
+              </div>
+            </div>
+            <button class="btn btn-sm ${hasAcc?'btn-g':'btn-d'}" id="fa-${folderId}-${u.id}"
+              onclick="toggleFolderAccess(${folderId},${u.id},this)">
+              ${hasAcc?'✓ HAS ACCESS':'✗ NO ACCESS'}
+            </button>
+          </div>`;
+        }).join('')||'<div style="color:var(--text3);text-align:center;padding:1rem;font-size:12px;font-weight:700">NO USERS FOUND</div>'}
+      </div>
+    </div>
+    <div class="mf"><button class="btn btn-p" onclick="cm();nav('browse')">DONE</button></div>`,'lg');
+}
+
+async function toggleFolderAccess(folderId,userId,btn){
+  const {data:ex}=await sb.from('dv_folder_access').select('id').eq('folder_id',folderId).eq('user_id',userId).maybeSingle();
+  if(ex){
+    await sb.from('dv_folder_access').delete().eq('id',ex.id);
+    btn.className='btn btn-sm btn-d';
+    btn.innerHTML='✗ NO ACCESS';
+    toast('ACCESS REVOKED','warn');
+  }else{
+    await sb.from('dv_folder_access').insert({folder_id:folderId,user_id:userId,granted_by:SES.id});
+    btn.className='btn btn-sm btn-g';
+    btn.innerHTML='✓ HAS ACCESS';
+    toast('ACCESS GRANTED ✓');
+  }
+}
+
 function createPersonalFolder(){
 openModal(`
 <div class="mh"><h3>${I.fol} CREATE PERSONAL FOLDER</h3><div class="mc" onclick="cm()">&#215;</div></div>
