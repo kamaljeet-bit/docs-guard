@@ -395,6 +395,7 @@ const items=isA?[
 {s:null,id:'my-docs',label:'MY UPLOADS',ic:I.md},
 {s:null,id:'upload',label:'UPLOAD DOCUMENT',ic:I.up},
 {s:'ACTIVITY',id:'history',label:'MY HISTORY',ic:I.hi},
+{s:null,id:'expiry',label:'EXPIRY TRACKER',ic:I.ex},
 ];
 let html='',ls=null;
 items.forEach(it=>{if(it.s&&it.s!==ls){html+=`<div class="sb-s">${it.s}</div>`;ls=it.s;}html+=`<button class="nb" id="nb-${it.id}" onclick="nav('${it.id}')">${it.ic}<span>${it.label}</span></button>`;});
@@ -522,17 +523,22 @@ window._dashClockTimer=setInterval(dashTick,1000);
 async 'browse'(){
 const el=document.getElementById('pc');
 const {data:cos}=await sb.from('dv_companies').select('*').order('name');
-// Personal folders - Admin sees all, User sees only granted
+// Personal folders - Admin sees all, User sees only access-granted folders
 let pFols=[];
 try{
 if(SES.role==='admin'){
 const {data:pf}=await sb.from('dv_folders').select('*,dv_users(name)').is('company',null).order('name');
 pFols=pf||[];
 }else{
-const {data:fa}=await sb.from('dv_folder_access').select('folder_id,dv_folders(id,name,created_by,dv_users(name))').eq('user_id',SES.id);
+// User sees ONLY folders they have been granted access to
+const {data:fa}=await sb.from('dv_folder_access').select('folder_id,dv_folders!inner(id,name,created_by,dv_users(name))').eq('user_id',SES.id);
 pFols=(fa||[]).map(a=>a.dv_folders).filter(Boolean);
 }
-}catch(ex2){pFols=[];}
+}catch(ex2){
+// Fallback - show nothing for user if error
+if(SES.role!=='admin')pFols=[];
+else{try{const {data:pf2}=await sb.from('dv_folders').select('*,dv_users(name)').is('company',null).order('name');pFols=pf2||[];}catch(e3){pFols=[];}}
+}
 el.innerHTML=`
 <div style="margin-bottom:2rem">
 <div class="sh">
