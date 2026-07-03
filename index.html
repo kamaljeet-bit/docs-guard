@@ -539,9 +539,8 @@ const pages={
   async 'browse'(){
     const el=document.getElementById('pc');
     const {data:cos}=await sb.from('dv_companies').select('*').order('name');
-    // Personal folders - where company is null
+    // Personal folders - ALL folders visible to everyone (admin created = shared)
     let pfq=sb.from('dv_folders').select('*,dv_users(name)').is('company',null).order('name');
-    if(SES.role==='user')pfq=pfq.eq('created_by',SES.id);
     let pFols=[];
     try{const {data:pf}=await pfq;pFols=pf||[];}catch(ex){pFols=[];}
     el.innerHTML=`
@@ -549,9 +548,9 @@ const pages={
       <div style="margin-bottom:2rem">
         <div class="sh">
           <h3 style="display:flex;align-items:center;gap:8px">${I.fol} PERSONAL FOLDERS <span class="badge bd-t">${(pFols||[]).length}</span></h3>
-          <button class="btn btn-t btn-sm" onclick="createPersonalFolder()">${I.pl} NEW PERSONAL FOLDER</button>
+          ${SES.role==='admin'?`<button class="btn btn-t btn-sm" onclick="createPersonalFolder()">${I.pl} NEW PERSONAL FOLDER</button>`:''}
         </div>
-        <div class="nt nt-b" style="margin-bottom:1rem">${I.sh}<span>PERSONAL FOLDERS ARE FOR INDIVIDUAL USE — NO COMPANY, FY, OR DEPARTMENT NEEDED. ONLY YOU (AND ADMIN) CAN SEE YOUR PERSONAL FOLDERS.</span></div>
+        <div class="nt nt-b" style="margin-bottom:1rem">${I.sh}<span>PERSONAL FOLDERS ARE CREATED BY ADMIN AND ARE VISIBLE TO ALL USERS — NO COMPANY, FY, OR DEPARTMENT NEEDED. USE THESE TO ACCESS SHARED PERSONAL DOCUMENTS LIKE TDS CERTIFICATES, AGREEMENTS, ETC.</span></div>
         <div class="dg">
           ${(pFols||[]).map(f=>`
             <div class="dc" onclick="browsePersonalFolder(${f.id},'${e(f.name)}')">
@@ -559,11 +558,11 @@ const pages={
                 <div class="folder-3d teal"><div class="f-back"></div><div class="f-tab"></div><div class="f-front"></div></div>
                 <div>
                   <div class="badge bd-t">${e(f.name.toUpperCase())}</div>
-                  <div style="font-size:10px;color:var(--text3);margin-top:3px">BY ${e((f.dv_users?.name||'').toUpperCase())}</div>
+                  <div style="font-size:10px;color:var(--text3);margin-top:3px">CREATED BY ${e((f.dv_users?.name||'ADMIN').toUpperCase())}</div>
                 </div>
               </div>
-              <div style="font-size:11px;font-weight:700;color:var(--text3)">PERSONAL DOCUMENTS →</div>
-            </div>`).join('')||'<div style="grid-column:1/-1;background:var(--card);border:1.5px dashed var(--border2);border-radius:14px;padding:2rem;text-align:center;color:var(--text3);font-size:12px;font-weight:700">NO PERSONAL FOLDERS YET — CREATE ONE ABOVE</div>'}
+              <div style="font-size:11px;font-weight:700;color:var(--text3)">CLICK TO VIEW DOCUMENTS →</div>
+            </div>`).join('')||`<div style="grid-column:1/-1;background:var(--card);border:1.5px dashed var(--border2);border-radius:14px;padding:2rem;text-align:center;color:var(--text3);font-size:12px;font-weight:700">${SES.role==='admin'?'NO PERSONAL FOLDERS YET — CREATE ONE ABOVE':'NO PERSONAL FOLDERS AVAILABLE — CONTACT ADMIN'}</div>`}
         </div>
       </div>
 
