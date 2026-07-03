@@ -784,6 +784,65 @@ el.innerHTML=`
 </div>
 </div>`;
 },
+async 'expiry'(){
+const el=document.getElementById('pc');
+const today=new Date();today.setHours(0,0,0,0);
+let exp=[];
+try{
+const {data:ed}=await sb.from('dv_doc_expiry').select('*').order('expiry_date');
+exp=ed||[];
+for(const ex of exp){
+try{
+if(ex.document_id){const {data:dc}=await sb.from('dv_documents').select('title,company,dept,original_name').eq('id',ex.document_id).maybeSingle();ex.doc=dc||{};}
+else{ex.doc={};}
+}catch(e2){ex.doc={};}
+}
+}catch(e1){exp=[];}
+const rows=exp.map(ex=>{
+const expDate=new Date(ex.expiry_date);expDate.setHours(0,0,0,0);
+const diffDays=Math.ceil((expDate-today)/(1000*60*60*24));
+let badge,status;
+if(ex.is_renewed){badge='<span class="exp-valid">✓ RENEWED</span>';status='renewed';}
+else if(diffDays<0){badge=`<span class="exp-expired">✗ EXPIRED ${Math.abs(diffDays)} DAYS AGO</span>`;status='expired';}
+else if(diffDays<=30){badge=`<span class="exp-soon">⚠ EXPIRES IN ${diffDays} DAYS</span>`;status='soon';}
+else{badge=`<span class="exp-valid">✓ VALID — ${diffDays} DAYS LEFT</span>`;status='valid';}
+return{ex,diffDays,badge,status};
+});
+const expired=rows.filter(r=>r.status==='expired').length;
+const soon=rows.filter(r=>r.status==='soon').length;
+const valid=rows.filter(r=>['valid','renewed'].includes(r.status)).length;
+el.innerHTML=`
+<div class="nt nt-a">${I.al}<span><strong>EXPIRY TRACKER:</strong> RENEWAL DOCUMENTS KI EXPIRY TRACK HOTI HAI. 30 DAYS PEHLE EMAIL REMINDER BHEJO — ADMIN + USER DONO KO.</span></div>
+<div class="sg" style="margin-bottom:1.5rem">
+<div class="sc" style="--sc:var(--red)"><div class="sc-l">EXPIRED</div><div class="sc-n">${expired}</div><div class="sc-s">URGENT</div></div>
+<div class="sc" style="--sc:var(--amber)"><div class="sc-l">EXPIRING SOON</div><div class="sc-n">${soon}</div><div class="sc-s">WITHIN 30 DAYS</div></div>
+<div class="sc" style="--sc:var(--green)"><div class="sc-l">VALID</div><div class="sc-n">${valid}</div><div class="sc-s">ACTIVE</div></div>
+<div class="sc" style="--sc:var(--acc)"><div class="sc-l">TOTAL TRACKED</div><div class="sc-n">${rows.length}</div><div class="sc-s">RENEWAL DOCS</div></div>
+</div>
+<div class="sh"><h3>ALL RENEWAL DOCUMENTS</h3><button class="btn btn-p btn-sm" onclick="sendAllReminders()">${I.al} SEND ALL REMINDERS</button></div>
+<div class="tw"><table>
+<thead><tr><th>#</th><th>DOCUMENT</th><th>DESCRIPTION</th><th>ISSUE DATE</th><th>EXPIRY DATE</th><th>STATUS</th><th>EMAILS</th><th>ACTIONS</th></tr></thead>
+<tbody>${rows.map((r,i)=>`<tr>
+<td style="font-size:11px;color:var(--text3);font-weight:700">${i+1}</td>
+<td><div style="font-weight:700;font-size:12px">${e((r.ex.doc?.title||'PERSONAL DOC').toUpperCase())}</div>
+<div style="font-size:10px;color:var(--text3)">${e(r.ex.doc?.company||'')} ${r.ex.doc?.dept?'· '+r.ex.doc.dept:''}</div></td>
+<td style="font-size:11px;font-weight:600;max-width:140px">${e(r.ex.renewal_notes||'—')}</td>
+<td style="font-size:11px;font-weight:600;white-space:nowrap">${r.ex.issue_date||'—'}</td>
+<td style="font-size:12px;font-weight:800;white-space:nowrap;color:${r.diffDays<0?'var(--red)':r.diffDays<=30?'var(--amber)':'var(--green)'}">${r.ex.expiry_date||'—'}</td>
+<td>${r.badge}</td>
+<td style="font-size:10px;color:var(--text2)">
+<div>ADMIN: ${e(r.ex.admin_email||'—')}</div>
+<div>USER: ${e(r.ex.user_email||'—')}</div>
+${r.ex.last_reminder_sent?`<div style="font-size:9px;color:var(--text3)">LAST: ${r.ex.last_reminder_sent}</div>`:''}
+</td>
+<td><div class="tdax">
+${!r.ex.is_renewed?`<button class="btn btn-xs btn-g" onclick="markRenewed(${r.ex.id})">✓ RENEWED</button>`:''}
+<button class="btn btn-xs btn-p" onclick="sendReminderEmail(${r.ex.id})">${I.al}</button>
+<button class="btn btn-xs btn-a" onclick="editExpiryRecord(${r.ex.id})">EDIT</button>
+</div></td>
+</tr>`).join('')||'<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text3);font-size:11px;font-weight:800">NO RENEWAL DOCUMENTS YET — UPLOAD A DOCUMENT AND SELECT "YES — HAS EXPIRY DATE"</td></tr>'}
+</tbody></table></div>`;
+},
 async 'deleted'(){
 const el=document.getElementById('pc');
 const {data:dels}=await sb.from('dv_deleted_docs').select('*').order('deleted_at',{ascending:false});
