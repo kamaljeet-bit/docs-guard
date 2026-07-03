@@ -822,14 +822,20 @@ const el=document.getElementById('pc');
 const today=new Date();today.setHours(0,0,0,0);
 let exp=[];
 try{
-const {data:ed}=await sb.from('dv_doc_expiry').select('*').order('expiry_date');
+// Admin sees all, user sees only their documents' expiry
+let exQ=sb.from('dv_doc_expiry').select('*').order('expiry_date');
+const {data:ed}=await exQ;
 exp=ed||[];
 for(const ex of exp){
 try{
-if(ex.document_id){const {data:dc}=await sb.from('dv_documents').select('title,company,dept,original_name').eq('id',ex.document_id).maybeSingle();ex.doc=dc||{};}
-else{ex.doc={};}
+if(ex.document_id){
+const {data:dc}=await sb.from('dv_documents').select('title,company,dept,original_name,uploaded_by').eq('id',ex.document_id).maybeSingle();
+ex.doc=dc||{};
+}else{ex.doc={};}
 }catch(e2){ex.doc={};}
 }
+// Filter for user - show only their docs
+if(SES.role==='user'){exp=exp.filter(ex=>ex.doc?.uploaded_by===SES.id);}
 }catch(e1){exp=[];}
 const rows=exp.map(ex=>{
 const expDate=new Date(ex.expiry_date);expDate.setHours(0,0,0,0);
@@ -852,7 +858,7 @@ el.innerHTML=`
 <div class="sc" style="--sc:var(--green)"><div class="sc-l">VALID</div><div class="sc-n">${valid}</div><div class="sc-s">ACTIVE</div></div>
 <div class="sc" style="--sc:var(--acc)"><div class="sc-l">TOTAL TRACKED</div><div class="sc-n">${rows.length}</div><div class="sc-s">RENEWAL DOCS</div></div>
 </div>
-<div class="sh"><h3>ALL RENEWAL DOCUMENTS</h3><button class="btn btn-p btn-sm" onclick="sendAllReminders()">${I.al} SEND ALL REMINDERS</button></div>
+<div class="sh"><h3>${SES.role==='admin'?'ALL RENEWAL DOCUMENTS':'MY RENEWAL DOCUMENTS'}</h3>${SES.role==='admin'?`<button class="btn btn-p btn-sm" onclick="sendAllReminders()">${I.al} SEND ALL REMINDERS</button>`:''}</div>
 <div class="tw"><table>
 <thead><tr><th>#</th><th>DOCUMENT</th><th>DESCRIPTION</th><th>ISSUE DATE</th><th>EXPIRY DATE</th><th>STATUS</th><th>EMAILS</th><th>ACTIONS</th></tr></thead>
 <tbody>${rows.map((r,i)=>`<tr>
@@ -869,9 +875,10 @@ el.innerHTML=`
 ${r.ex.last_reminder_sent?`<div style="font-size:9px;color:var(--text3)">LAST: ${r.ex.last_reminder_sent}</div>`:''}
 </td>
 <td><div class="tdax">
-${!r.ex.is_renewed?`<button class="btn btn-xs btn-g" onclick="markRenewed(${r.ex.id})">✓ RENEWED</button>`:''}
-<button class="btn btn-xs btn-p" onclick="sendReminderEmail(${r.ex.id})">${I.al}</button>
-<button class="btn btn-xs btn-a" onclick="editExpiryRecord(${r.ex.id})">EDIT</button>
+${!r.ex.is_renewed&&SES.role==='admin'?`<button class="btn btn-xs btn-g" onclick="markRenewed(${r.ex.id})">✓ RENEWED</button>`:''}
+${SES.role==='admin'?`<button class="btn btn-xs btn-p" onclick="sendReminderEmail(${r.ex.id})">${I.al}</button>`:''}
+${SES.role==='admin'?`<button class="btn btn-xs btn-a" onclick="editExpiryRecord(${r.ex.id})">EDIT</button>`:''}
+${r.ex.is_renewed?'<span class="exp-valid" style="font-size:9px">RENEWED</span>':''}
 </div></td>
 </tr>`).join('')||'<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text3);font-size:11px;font-weight:800">NO RENEWAL DOCUMENTS YET — UPLOAD A DOCUMENT AND SELECT "YES — HAS EXPIRY / RENEWAL DATE"</td></tr>'}
 </tbody></table></div>`;
