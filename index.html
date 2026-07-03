@@ -578,12 +578,43 @@ ${(cos||[]).map(co=>`
 async 'my-docs'(){
 const el=document.getElementById('pc');
 const {data:docs}=await sb.from('dv_documents').select('*,dv_users(name),dv_folders(name)').eq('uploaded_by',SES.id).eq('is_deleted',false).order('created_at',{ascending:false});
+const docIds=(docs||[]).map(d=>d.id);
+let expiryMap={};
+if(docIds.length>0){try{const {data:exps}=await sb.from('dv_doc_expiry').select('*').in('document_id',docIds);(exps||[]).forEach(ex=>{expiryMap[ex.document_id]=ex;});}catch(e2){}}
+const today=new Date();today.setHours(0,0,0,0);
+const getEB=(docId)=>{
+const ex=expiryMap[docId];if(!ex)return'<span style="font-size:10px;color:var(--text3)">ONE TIME</span>';
+if(ex.is_renewed)return'<span class="exp-valid">✓ RENEWED</span>';
+const diff=Math.ceil((new Date(ex.expiry_date)-today)/(1000*60*60*24));
+if(diff<0)return`<span class="exp-expired">✗ EXPIRED ${Math.abs(diff)}D AGO</span>`;
+if(diff<=30)return`<span class="exp-soon">⚠ ${diff} DAYS LEFT</span>`;
+return`<span class="exp-valid">✓ VALID — ${diff} DAYS LEFT</span>`;
+};
 el.innerHTML=`
-<div class="sh"><h3>MY UPLOADS (${(docs||[]).length})</h3><button class="btn btn-p" onclick="nav('upload')">${I.pl} UPLOAD NEW</button></div>
+<div class="sh"><h3>MY UPLOADS (${(docs||[]).length})</h3>${canUpload()?`<button class="btn btn-p" onclick="nav('upload')">${I.pl} UPLOAD NEW</button>`:''}</div>
 <div class="tw"><table>
-<thead><tr><th>#</th><th>DOCUMENT</th><th>LOCATION</th><th>FOLDER</th><th>DATE</th><th>SIZE</th><th>TIMER</th><th>ACTIONS</th></tr></thead>
-<tbody>${rRows(docs||[])}</tbody>
-</table></div>`;
+<thead><tr><th>#</th><th>DOCUMENT</th><th>LOCATION</th><th>DATE</th><th>SIZE</th><th>EXPIRY STATUS</th><th>TIMER</th><th>ACTIONS</th></tr></thead>
+<tbody>${(docs||[]).map((d,i)=>{
+const[fc,fl]=fIC(d.original_name||'',d.mime_type||'');
+const canDel2=canDelete2Min(d.created_at)&&(d.uploaded_by===SES.id||SES.role==='admin');
+return`<tr>
+<td style="font-size:11px;color:var(--text3);font-weight:700">${i+1}</td>
+<td><div class="nr"><div class="fic ${fc}">${fl}</div><div>
+<div style="font-weight:700;font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e((d.title||'').toUpperCase())}</div>
+<div style="font-size:10px;color:var(--text3)">${e(d.original_name)}</div>
+</div></div></td>
+<td><div style="font-size:10px;font-weight:700;color:var(--text2)">${e((d.company||'PERSONAL').toUpperCase())}</div>${d.dept?dB(d.dept):''}</td>
+<td style="font-size:10px;color:var(--text2);white-space:nowrap">${fDT(d.created_at)}</td>
+<td style="font-size:11px;color:var(--text2)">${fSz(d.file_size)}</td>
+<td>${getEB(d.id)}</td>
+<td><div id="timer-${d.id}">${canDel2?'<span class="timer-badge">⏱ LOADING...</span>':'<span style="font-size:10px;color:var(--text3)">—</span>'}</div></td>
+<td><div class="tdax">
+<button class="btn btn-sm" onclick="vD(${d.id})">${I.ey} VIEW</button>
+${canDownload()?`<button class="btn btn-sm btn-g" onclick="dlD(${d.id})">${I.dl} DL</button>`:''}
+${canDel2?`<button class="btn btn-sm btn-d" onclick="delDoc(${d.id},'${e(d.title||'')}')">${I.tr}</button>`:''}
+</div></td>
+</tr>`;}).join('')||'<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text3);font-size:11px;font-weight:800">NO UPLOADS FOUND</td></tr>'}
+</tbody></table></div>`;
 (docs||[]).forEach(d=>{if(canDelete2Min(d.created_at))setTimeout(()=>startDeleteTimer(d.id,d.created_at),100);});
 },
 async 'upload'(){
