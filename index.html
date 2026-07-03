@@ -814,7 +814,7 @@ const expired=rows.filter(r=>r.status==='expired').length;
 const soon=rows.filter(r=>r.status==='soon').length;
 const valid=rows.filter(r=>['valid','renewed'].includes(r.status)).length;
 el.innerHTML=`
-<div class="nt nt-a">${I.al}<span><strong>EXPIRY TRACKER:</strong> RENEWAL DOCUMENTS KI EXPIRY TRACK HOTI HAI. 30 DAYS PEHLE EMAIL REMINDER BHEJO — ADMIN + USER DONO KO.</span></div>
+<div class="nt nt-a">${I.al}<span><strong>EXPIRY TRACKER:</strong> TRACK EXPIRY OF RENEWAL DOCUMENTS. SEND EMAIL REMINDERS 30 DAYS BEFORE EXPIRY — BOTH ADMIN & USER WILL BE NOTIFIED.</span></div>
 <div class="sg" style="margin-bottom:1.5rem">
 <div class="sc" style="--sc:var(--red)"><div class="sc-l">EXPIRED</div><div class="sc-n">${expired}</div><div class="sc-s">URGENT</div></div>
 <div class="sc" style="--sc:var(--amber)"><div class="sc-l">EXPIRING SOON</div><div class="sc-n">${soon}</div><div class="sc-s">WITHIN 30 DAYS</div></div>
@@ -842,7 +842,7 @@ ${!r.ex.is_renewed?`<button class="btn btn-xs btn-g" onclick="markRenewed(${r.ex
 <button class="btn btn-xs btn-p" onclick="sendReminderEmail(${r.ex.id})">${I.al}</button>
 <button class="btn btn-xs btn-a" onclick="editExpiryRecord(${r.ex.id})">EDIT</button>
 </div></td>
-</tr>`).join('')||'<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text3);font-size:11px;font-weight:800">NO RENEWAL DOCUMENTS YET — UPLOAD A DOCUMENT AND SELECT "YES — HAS EXPIRY DATE"</td></tr>'}
+</tr>`).join('')||'<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text3);font-size:11px;font-weight:800">NO RENEWAL DOCUMENTS YET — UPLOAD A DOCUMENT AND SELECT "YES — HAS EXPIRY / RENEWAL DATE"</td></tr>'}
 </tbody></table></div>`;
 },
 async 'deleted'(){
@@ -928,12 +928,12 @@ async function toggleFolderAccess(folderId,userId,btn){
     await sb.from('dv_folder_access').delete().eq('id',ex.id);
     btn.className='btn btn-sm btn-d';
     btn.innerHTML='✗ NO ACCESS';
-    toast('ACCESS REVOKED','warn');
+    toast('ACCESS REVOKED SUCCESSFULLY','warn');
   }else{
     await sb.from('dv_folder_access').insert({folder_id:folderId,user_id:userId,granted_by:SES.id});
     btn.className='btn btn-sm btn-g';
     btn.innerHTML='✓ HAS ACCESS';
-    toast('ACCESS GRANTED ✓');
+    toast('ACCESS GRANTED SUCCESSFULLY ✓');
   }
 }
 
@@ -952,7 +952,7 @@ if(!name)return toast('FOLDER NAME IS REQUIRED','err');
 // Personal folders: company=null, financial_year=null, dept=null
 const {error}=await sb.from('dv_folders').insert({name,company:null,financial_year:null,dept:null,created_by:SES.id});
 if(error){toast(error.message,'err');return;}
-toast('PERSONAL FOLDER CREATED ✓');cm();await nav('browse');
+toast('PERSONAL FOLDER CREATED SUCCESSFULLY ✓');cm();await nav('browse');
 }
 async function browsePersonalFolder(folderId,folderName){
 const el=document.getElementById('pc');
@@ -1193,10 +1193,10 @@ openModal(`
 </div>
 <div class="nt nt-r">${I.wn}<span>YOU CAN DELETE THIS DOCUMENT WITHIN <strong>2 MINUTES</strong> OF UPLOAD.</span></div>
 <div style="background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:1rem;margin-top:.75rem">
-<div style="font-size:11px;font-weight:800;letter-spacing:1px;color:var(--text2);margin-bottom:.75rem">&#128203; IS THIS A RENEWAL DOCUMENT? (LICENSE, CERTIFICATE, PERMIT ETC.)</div>
+<div style="font-size:11px;font-weight:800;letter-spacing:1px;color:var(--text2);margin-bottom:.75rem">&#128203; IS THIS A RENEWAL DOCUMENT? (E.G. LICENSE, CERTIFICATE, PERMIT, REGISTRATION)</div>
 <div style="display:flex;gap:8px;flex-wrap:wrap">
-<button class="btn btn-g" onclick="cm();doUpload(false)">${I.up} NO — ONE TIME ONLY</button>
-<button class="btn btn-a" onclick="cm();showRenewalForm()">${I.al} YES — HAS EXPIRY DATE</button>
+<button class="btn btn-g" onclick="cm();doUpload(false)">${I.up} NO — ONE TIME DOCUMENT</button>
+<button class="btn btn-a" onclick="cm();showRenewalForm()">${I.al} YES — HAS EXPIRY / RENEWAL DATE</button>
 </div>
 </div>
 </div>
@@ -1230,10 +1230,10 @@ openModal(`
 <div class="nt nt-r">${I.wn}<span><strong>IMPORTANT:</strong> YOU CAN DELETE THIS DOCUMENT WITHIN <strong>2 MINUTES</strong> OF UPLOAD. AFTER THAT, ONLY ADMIN CAN DELETE. IF UPLOADED INCORRECTLY, INFORM ADMIN IMMEDIATELY.</span></div>
 </div>
 <div style="background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:1rem;margin-top:.75rem">
-<div style="font-size:11px;font-weight:800;letter-spacing:1px;color:var(--text2);margin-bottom:.75rem">📋 IS THIS A RENEWAL DOCUMENT? (LICENSE, CERTIFICATE, PERMIT ETC.)</div>
+<div style="font-size:11px;font-weight:800;letter-spacing:1px;color:var(--text2);margin-bottom:.75rem">📋 IS THIS A RENEWAL DOCUMENT? (E.G. LICENSE, CERTIFICATE, PERMIT, REGISTRATION)</div>
 <div style="display:flex;gap:8px;flex-wrap:wrap">
-<button class="btn btn-g" onclick="cm();doUpload(false)">${I.up} NO — ONE TIME ONLY</button>
-<button class="btn btn-a" onclick="cm();showRenewalForm()">${I.al} YES — HAS EXPIRY DATE</button>
+<button class="btn btn-g" onclick="cm();doUpload(false)">${I.up} NO — ONE TIME DOCUMENT</button>
+<button class="btn btn-a" onclick="cm();showRenewalForm()">${I.al} YES — HAS EXPIRY / RENEWAL DATE</button>
 </div>
 </div>
 <div class="mf"><button class="btn" onclick="cm()">CANCEL</button></div>`);
@@ -1458,7 +1458,7 @@ function showRenewalForm(){
 openModal(`
 <div class="mh"><h3>${I.al} SET EXPIRY DETAILS</h3><div class="mc" onclick="cm()">&#215;</div></div>
 <div class="mb">
-<div class="nt nt-a">${I.sh}<span>FILL IN THE DOCUMENT VALIDITY DETAILS. EMAIL REMINDER WILL BE SENT 30 DAYS BEFORE EXPIRY AND DAILY UNTIL RENEWED.</span></div>
+<div class="nt nt-a">${I.sh}<span>FILL IN THE DOCUMENT VALIDITY DETAILS. AN EMAIL REMINDER WILL BE SENT 30 DAYS BEFORE EXPIRY AND DAILY UNTIL THE DOCUMENT IS RENEWED.</span></div>
 <div style="display:grid;gap:13px">
 <div class="fg"><label>DOCUMENT NAME / DESCRIPTION *</label><input id="rn-notes" placeholder="E.G. FSSAI LICENSE, GST CERTIFICATE, SHOP ACT"></div>
 <div class="fr">
@@ -1481,10 +1481,10 @@ const issue=document.getElementById('rn-issue').value;
 const expiry=document.getElementById('rn-expiry').value;
 const adminEmail=document.getElementById('rn-admin-email').value.trim();
 const userEmail=document.getElementById('rn-user-email').value.trim();
-if(!notes)return toast('DOCUMENT DESCRIPTION ZAROORI HAI','err');
-if(!issue)return toast('ISSUE DATE DAALEN','err');
-if(!expiry)return toast('EXPIRY DATE DAALEN','err');
-if(!adminEmail)return toast('ADMIN EMAIL DAALEN','err');
+if(!notes)return toast('DOCUMENT DESCRIPTION IS REQUIRED','err');
+if(!issue)return toast('PLEASE ENTER ISSUE DATE','err');
+if(!expiry)return toast('PLEASE ENTER EXPIRY DATE','err');
+if(!adminEmail)return toast('PLEASE ENTER ADMIN EMAIL ADDRESS','err');
 window._renewalData={notes,issue,expiry,adminEmail,userEmail,isRenewal:true};
 cm();
 await doUpload(true);
@@ -1507,9 +1507,9 @@ window._renewalData=null;
 
 // EXPIRY ACTIONS
 async function markRenewed(id){
-if(!confirm('MARK THIS DOCUMENT AS RENEWED?'))return;
+if(!confirm('CONFIRM: MARK THIS DOCUMENT AS RENEWED?'))return;
 await sb.from('dv_doc_expiry').update({is_renewed:true,renewed_at:new Date().toISOString()}).eq('id',id);
-toast('MARKED AS RENEWED ✓');await nav('expiry');
+toast('MARKED AS RENEWED SUCCESSFULLY ✓');await nav('expiry');
 }
 
 async function editExpiryRecord(id){
@@ -1531,7 +1531,7 @@ openModal(`
 async function saveEditExpiry(id){
 const upd={renewal_notes:document.getElementById('ee-notes').value.trim(),issue_date:document.getElementById('ee-issue').value,expiry_date:document.getElementById('ee-expiry').value,admin_email:document.getElementById('ee-admin').value.trim(),user_email:document.getElementById('ee-user').value.trim()||null};
 await sb.from('dv_doc_expiry').update(upd).eq('id',id);
-toast('UPDATED ✓');cm();await nav('expiry');
+toast('UPDATED SUCCESSFULLY ✓');cm();await nav('expiry');
 }
 
 // EMAIL REMINDER via mailto (opens email client)
@@ -1547,16 +1547,16 @@ const body=`Dear Team,%0A%0ADOCUMENT EXPIRY REMINDER%0A%0ADocument: ${docTitle}%
 const to=ex.admin_email+(ex.user_email?','+ex.user_email:'');
 window.open(`mailto:${to}?subject=${subject}&body=${body}`);
 await sb.from('dv_doc_expiry').update({last_reminder_sent:new Date().toISOString().split('T')[0],reminder_count:(ex.reminder_count||0)+1}).eq('id',id);
-toast('EMAIL CLIENT KHUL RAHA HAI — SEND KARO ✓');
+toast('EMAIL CLIENT OPENED — PLEASE REVIEW AND SEND THE EMAIL ✓');
 }
 
 async function sendAllReminders(){
 const today=new Date();today.setHours(0,0,0,0);
 const {data:exp}=await sb.from('dv_doc_expiry').select('*,dv_documents(title,company,dept)').eq('is_renewal',true).eq('is_renewed',false);
 const due=(exp||[]).filter(ex=>{const d=new Date(ex.expiry_date);d.setHours(0,0,0,0);return Math.ceil((d-today)/(1000*60*60*24))<=30;});
-if(!due.length){toast('NO DOCUMENTS EXPIRING IN 30 DAYS','info');return;}
+if(!due.length){toast('NO DOCUMENTS EXPIRING WITHIN 30 DAYS','info');return;}
 for(const ex of due)await sendReminderEmail(ex.id);
-toast(`${due.length} REMINDERS SENT ✓`);
+toast(`${due.length} REMINDERS SENT SUCCESSFULLY ✓`);
 }
 
 // LOG HISTORY
@@ -1644,7 +1644,7 @@ const name=(document.getElementById('fnm').value.trim()||'').toUpperCase();
 if(!name)return toast('FOLDER NAME IS REQUIRED','err');
 const {error}=await sb.from('dv_folders').insert({name,company:co,financial_year:fy,dept:dp,created_by:SES.id});
 if(error){toast(error.message,'err');return;}
-toast('FOLDER CREATED ✓');cm();bFol(co,fy,dp);
+toast('FOLDER CREATED SUCCESSFULLY ✓');cm();bFol(co,fy,dp);
 }
 
 // RENAME FOLDER
@@ -1664,10 +1664,10 @@ setTimeout(()=>{const i=document.getElementById('rf-name');if(i){i.focus();i.sel
 
 async function doRenameFolder(id,type,co,fy,dp){
 const name=(document.getElementById('rf-name').value.trim()||'').toUpperCase();
-if(!name)return toast('NEW NAME REQUIRED','err');
+if(!name)return toast('NEW FOLDER NAME IS REQUIRED','err');
 const {error}=await sb.from('dv_folders').update({name}).eq('id',id);
 if(error){toast(error.message,'err');return;}
-toast('FOLDER RENAMED ✓');cm();
+toast('FOLDER RENAMED SUCCESSFULLY ✓');cm();
 if(type==='personal')nav('browse');
 else bFol(co,fy,dp);
 }
@@ -1677,7 +1677,7 @@ async function deleteFolder(id,name,type,co='',fy='',dp=''){
 openModal(`
 <div class="mh"><h3>${I.tr} DELETE FOLDER</h3><div class="mc" onclick="cm()">&#215;</div></div>
 <div class="mb">
-<div class="nt nt-r">${I.wn}<span><strong>WARNING:</strong> FOLDER "${e(name.toUpperCase())}" DELETE HOGA. FOLDER KE ANDAR KE DOCUMENTS DELETE NAHI HONGE — WO ROOT MEIN MOVE HO JAYENGE.</span></div>
+<div class="nt nt-r">${I.wn}<span><strong>WARNING:</strong> FOLDER "${e(name.toUpperCase())}" WILL BE PERMANENTLY DELETED. DOCUMENTS INSIDE WILL NOT BE DELETED — THEY WILL BE MOVED TO ROOT.</span></div>
 <div style="background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:1rem;font-size:12px;font-weight:700;color:var(--text2)">
 FOLDER NAME: <strong style="color:var(--red)">${e(name.toUpperCase())}</strong>
 </div>
@@ -1696,7 +1696,7 @@ await sb.from('dv_folder_access').delete().eq('folder_id',id);
 // Delete folder
 const {error}=await sb.from('dv_folders').delete().eq('id',id);
 if(error){toast(error.message,'err');return;}
-toast('FOLDER DELETED — DOCUMENTS MOVED TO ROOT ✓','warn');cm();
+toast('FOLDER DELETED — DOCUMENTS MOVED TO ROOT SUCCESSFULLY ✓','warn');cm();
 if(type==='personal')nav('browse');
 else bFol(co,fy,dp);
 }
@@ -1772,7 +1772,7 @@ if(ex){
 await sb.from('dv_user_dept_access').delete().eq('id',ex.id);
 btn.className='btn btn-sm btn-d';
 btn.innerHTML='<span style="font-size:14px">✗</span><span>'+dept+'</span>';
-toast('ACCESS REVOKED: '+dept,'warn');
+toast('ACCESS REVOKED SUCCESSFULLY: '+dept,'warn');
 }else{
 await sb.from('dv_user_dept_access').insert({user_id:userId,company,dept,granted_by:SES.id});
 btn.className='btn btn-sm btn-g';
@@ -1847,7 +1847,7 @@ await sb.from('dv_users').update({password:p1}).eq('id',id);
 toast('PASSWORD HAS BEEN RESET SUCCESSFULLY ✓');cm();
 }
 async function tU(id,active){
-if(!confirm(`ARE YOU SURE YOU WANT TO ${active?'DEACTIVATE':'ACTIVATE'} THIS USER?`))return;
+if(!confirm(`CONFIRM: ARE YOU SURE YOU WANT TO ${active?'DEACTIVATE':'ACTIVATE'} THIS USER?`))return;
 await sb.from('dv_users').update({is_active:!active}).eq('id',id);
 toast(active?'USER HAS BEEN DEACTIVATED':'USER HAS BEEN ACTIVATED');await nav('users');
 }
